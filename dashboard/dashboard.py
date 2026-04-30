@@ -70,8 +70,6 @@ def load_data():
 day_df, hour_df = load_data()
 
 # ── Sidebar ────────────────────────────────────────────────────────────────────
-st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Capital_Bikeshare_logo.svg/320px-Capital_Bikeshare_logo.svg.png",
-                 use_column_width=True)
 st.sidebar.title("Filter Data")
 
 year_filter = st.sidebar.multiselect(
