@@ -140,8 +140,7 @@ with tab1:
         <h3>Pertanyaan Bisnis 1</h3>
     </div>
     <p><em>Bagaimana pola rata-rata penyewaan sepeda per jam berdasarkan hari
-    (hari kerja vs. libur) dan pada jam berapa terjadi
-    puncak penyewaan di masing-masing kategori?</em></p>
+    (hari kerja vs. libur) dan pada jam berapa terjadi puncak penyewaan di masing-masing kategori?</em></p>
     """, unsafe_allow_html=True)
 
     hourly_pattern = (hour_filtered
@@ -150,7 +149,7 @@ with tab1:
                       .reset_index())
 
     # Peak info
-    for day_type in ["Hari Kerja","Libur"]:
+    for day_type in ["Hari Kerja","Akhir Pekan/Libur"]:
         sub = hourly_pattern[hourly_pattern["day_type"] == day_type]
         if sub.empty: continue
         peak = sub.loc[sub["cnt"].idxmax()]
@@ -161,10 +160,10 @@ with tab1:
     fig.patch.set_facecolor("#0e1117")
 
     colors_map = {"casual":"#f4a261","registered":"#457b9d","cnt":"#2a9d8f"}
-    titles_map = {"Hari Kerja":"Hari Kerja",
-                  "Libur":"Libur"}
+    titles_map = {"Hari Kerja":"Hari Kerja (Workday)",
+                  "Akhir Pekan/Libur":"Akhir Pekan / Hari Libur"}
 
-    for ax, day_type in zip(axes, ["Hari Kerja","Libur"]):
+    for ax, day_type in zip(axes, ["Hari Kerja","Akhir Pekan/Libur"]):
         ax.set_facecolor("#1a1a2e")
         sub = hourly_pattern[hourly_pattern["day_type"] == day_type]
         if sub.empty:
@@ -221,9 +220,9 @@ with tab2:
 
     c1, c2 = st.columns(2)
 
-    # --- Boxplot Musim ---
+    # --- Linechart Musim ---
     with c1:
-        st.subheader("Distribusi per Musim")
+        st.subheader("Rata-rata Penyewaan per Musim")
         season_order = ["Spring","Summer","Fall","Winter"]
         palette_s = ["#a8dadc","#457b9d","#e9c46a","#264653"]
 
@@ -233,22 +232,24 @@ with tab2:
 
         valid_seasons = [s for s in season_order if s in day_filtered["season_label"].values]
         df_plot = day_filtered[day_filtered["season_label"].isin(valid_seasons)].copy()
-        df_plot["season_label"] = pd.Categorical(df_plot["season_label"],
-                                                  categories=valid_seasons, ordered=True)
-        sns.boxplot(data=df_plot, x="season_label", y="cnt",
-                    palette=palette_s[:len(valid_seasons)], ax=ax1,
-                    order=valid_seasons, width=0.5)
 
-        means_s = df_plot.groupby("season_label")["cnt"].mean()
-        for i, s in enumerate(valid_seasons):
-            if s in means_s.index:
-                ax1.scatter(i, means_s[s], color="red", zorder=5, s=70, marker="D")
-                ax1.text(i, means_s[s]+150, f'{means_s[s]:.0f}',
-                         ha="center", fontsize=9, color="red", fontweight="bold")
+        means_s = df_plot.groupby("season_label")["cnt"].mean().reindex(valid_seasons)
+
+        ax1.plot(valid_seasons, means_s.values,
+                 color="white", linewidth=2.5, marker="o",
+                 markersize=9, markerfacecolor="#0e1117", markeredgewidth=2.5, zorder=3)
+
+        for i, (s, val) in enumerate(zip(valid_seasons, means_s.values)):
+            ax1.scatter(i, val, color=palette_s[season_order.index(s)], s=120, zorder=4)
+            ax1.text(i, val + 150, f'{val:.0f}',
+                     ha="center", fontsize=9, color="white", fontweight="bold")
 
         ax1.set_title("Penyewaan Harian per Musim", color="white", fontweight="bold")
         ax1.set_xlabel("Musim", color="white"); ax1.set_ylabel("Jumlah Penyewaan", color="white")
+        ax1.set_xticks(range(len(valid_seasons)))
+        ax1.set_xticklabels(valid_seasons)
         ax1.tick_params(colors="white")
+        ax1.set_ylim(0, means_s.max() * 1.25)
         ax1.grid(axis="y", alpha=0.2, color="white")
         for spine in ax1.spines.values(): spine.set_color("gray")
         plt.tight_layout()
